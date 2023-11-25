@@ -1,5 +1,5 @@
 
-
+(*Zadanie 1 - punkt*)
 module Point_3D_module = struct
   type point3D = { x: int; y: int; z: int }
 
@@ -8,7 +8,13 @@ module Point_3D_module = struct
 
   let createPoint x y z = { x = x; y = y; z = z }
 end
+module type Point_3D_module = sig
+  type point3D
+  val getDistance : point3D -> point3D -> float
+  val createPoint : int -> int -> int -> point3D
+end
 
+(* Zadanie 2 - odcinek*)
 module Line = struct
   type line = { a: Point_3D_module.point3D; b: Point_3D_module.point3D }
 
@@ -16,7 +22,13 @@ module Line = struct
 
   let get_length line = Point_3D_module.getDistance line.a line.b
 end
+module type Line = sig
+  type line
+  val create_line : Point_3D_module.point3D -> Point_3D_module.point3D -> line
+  val get_length : line -> float
+end
 
+(*Zadanie 3 - drzewo binarne*)
 module Binary_tree = struct
   type tree =
     | Empty
@@ -73,9 +85,68 @@ end
   let _ = print_endline "Length of the line:"
   let _ = print_endline (string_of_float length)
 
-  (* Create a binary tree *)
+ 
   let tree = Binary_tree.Node(1, Binary_tree.Node(2, Binary_tree.Empty, Binary_tree.Empty), Binary_tree.Node(3, Binary_tree.Empty, Binary_tree.Empty))
   
   let tree_elements = Binary_tree.preorder_walk tree
-  let _ = print_endline "COntents of the tree:"
+  let _ = print_endline "Contents of the tree:"
   let _ = print_endline (String.concat " " (List.map string_of_int tree_elements))
+
+
+  (*Zadanie 4:*)
+module type AbstractCordinate = sig
+  type 'a cordinate
+  val create : 'a -> 'a cordinate
+end
+
+module AbstractCordinate = struct
+  type 'a cordinate = 'a
+  let create x = x
+end
+
+ (*Funktor to "funkcja" która bierze inny moduł jako parametr i "zwraca" moduł*)
+module MakePoint (Cordinate1 : AbstractCordinate)( Cordinate2 : AbstractCordinate) = struct
+  type 'a point = { x: 'a Cordinate1.cordinate; y: 'a Cordinate2.cordinate }
+end
+module AbstractPoint = MakePoint (AbstractCordinate) (AbstractCordinate)
+
+let cordinate1 = AbstractCordinate.create 2
+let cordinate2 = AbstractCordinate.create 4
+let point1 = AbstractPoint.{ x = cordinate1; y = cordinate2 }
+let _ = print_endline (string_of_int point1.x)
+let _ = print_endline (string_of_int point1.y)
+
+(*Zadanie 5 i 6*)
+module Translation = struct
+  type  translation = { x: int; y: int; z: int }
+  let create x y z = { x = x; y = y; z = z }
+end
+module type Translation = sig
+  type translation
+  val create : int -> int -> int -> translation
+end
+
+module Translate_Point (P : Point_3D_module) (T : Translation) = struct
+  let translate point translation =
+    P.createPoint (point.Point_3D_module.x + translation.Translation.x)
+                  (point.Point_3D_module.y + translation.Translation.y)
+                  (point.Point_3D_module.z + translation.Translation.z)
+end
+module TranslatedPoint = Translate_Point (Point_3D_module) (Translation)
+
+module Translate_Segment (L : Line) (T : Translation) = struct
+  let translate line translation =
+    L.create_line (TranslatedPoint.translate line.Line.a translation)
+                  (TranslatedPoint.translate line.Line.b translation)
+end
+module TranslatedLIne = Translate_Segment (Line) (Translation)
+
+let point = Point_3D_module.createPoint 1 2 3
+let translation = Translation.create 1 1 1
+let point = TranslatedPoint.translate point translation
+let _ = print_endline (string_of_int point.x)
+
+let line = Line.create_line (Point_3D_module.createPoint 1 1 1) (Point_3D_module.createPoint 2 2 2)
+let line = TranslatedLIne.translate line translation
+let _ = print_endline (string_of_float (Line.get_length line))
+
